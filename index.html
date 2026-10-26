@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Exercise Library</title>
+<style>
+  :root{
+    --bg:#0e1014; --panel:#161a21; --panel2:#1c212b; --line:#272e3a;
+    --text:#e7eaf0; --muted:#8e97a9; --accent:#3d8bfd; --accent-soft:#3d8bfd22;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  body:has(dialog[open]){overflow:hidden}
+  a{color:var(--accent); text-decoration:none}
+  img{display:block; max-width:100%}
+  .wrap{width:min(1400px,100%); margin:0 auto; padding:0 20px}
+
+  header{
+    position:sticky; top:0; z-index:10; background:#0e1014f2; backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  header .wrap{display:flex; flex-direction:column; gap:12px; padding-top:16px; padding-bottom:16px}
+  .top{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+  h1{font-size:20px; margin:0; letter-spacing:-.02em}
+  h1 span{color:var(--muted); font-weight:400; font-size:13px}
+  .controls{display:grid; grid-template-columns:2fr repeat(4,1fr); gap:8px}
+  body:not(.ready) .controls{display:none}
+  @media (max-width:900px){ .controls{grid-template-columns:1fr 1fr} .controls #search{grid-column:1/-1} }
+  input,select{
+    width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:10px; padding:9px 12px; font:inherit; font-size:14px; outline:none;
+  }
+  input:focus,select:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
+  input::placeholder{color:var(--muted)}
+
+  main{padding:24px 0 80px}
+  .grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+  .card{
+    display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); overflow:hidden; color:inherit; transition:border-color .15s, transform .15s;
+  }
+  .card:hover{border-color:#3d475a; transform:translateY(-2px)}
+  .card .thumb{aspect-ratio:16/10; background:var(--panel2); overflow:hidden}
+  .card .thumb img{width:100%; height:100%; object-fit:cover; transition:transform .3s}
+  .card:hover .thumb img{transform:scale(1.03)}
+  .card .body{padding:12px 14px 14px; display:flex; flex-direction:column; gap:6px}
+  .card h2{font-size:15px; margin:0; font-weight:600; line-height:1.3}
+  .card .meta{font-size:12px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap}
+  .card .meta b{font-weight:500; color:#b9c2d3}
+
+  .chips{display:flex; gap:6px; flex-wrap:wrap}
+  .chip{
+    font-size:12px; padding:2px 9px; border-radius:999px; border:1px solid var(--line);
+    background:var(--panel2); color:#c3cbd9; white-space:nowrap;
+  }
+  .chip.main{border-color:#2f4c7a; background:#16233a; color:#a9c8ff}
+  .chip.diff-beginner{color:#8fe3b0; border-color:#245c3c; background:#122318}
+  .chip.diff-intermediate{color:#ffd48a; border-color:#6b5120; background:#241d0f}
+  .chip.diff-advanced{color:#ff9f9f; border-color:#6e2b2b; background:#2a1313}
+
+  .empty{padding:60px 0; text-align:center; color:var(--muted)}
+  .drop{
+    margin:8vh auto 0; max-width:560px; padding:56px 32px; text-align:center;
+    border:2px dashed #33405a; border-radius:20px; background:var(--panel);
+    transition:border-color .15s, background .15s;
+  }
+  .drop.hot{border-color:var(--accent); background:#141c2b}
+  .drop h2{margin:0 0 8px; font-size:20px}
+  .drop p{margin:0; color:var(--muted); font-size:14px}
+  .drop code{background:var(--panel2); border:1px solid var(--line); padding:2px 6px; border-radius:6px; font-size:13px}
+  .drop .pick{margin-top:18px; font-size:13px; color:var(--muted)}
+  #file{display:none}
+
+  dialog{
+    width:min(1180px,calc(100% - 32px)); max-height:calc(100% - 48px); padding:0; border:1px solid var(--line);
+    border-radius:16px; background:var(--panel); color:var(--text); overflow:hidden;
+  }
+  dialog::backdrop{background:#05060acc; backdrop-filter:blur(3px)}
+  dialog[open]{display:flex; flex-direction:column}
+  .dhead{
+    display:flex; align-items:center; gap:16px; padding:16px 20px; border-bottom:1px solid var(--line);
+    background:var(--panel); flex:0 0 auto;
+  }
+  .dhead h2{margin:0; font-size:18px; line-height:1.3; flex:1}
+  .close{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:10px;
+    width:36px; height:36px; font-size:18px; cursor:pointer; flex:0 0 auto;
+  }
+  .close:hover{border-color:#3d475a}
+  .dbody{
+    display:grid; grid-template-columns:1.05fr .95fr; gap:24px; padding:20px; overflow:auto;
+  }
+  @media (max-width:860px){ .dbody{grid-template-columns:1fr} }
+  .dmedia{display:flex; flex-direction:column; gap:12px}
+  .dmedia .hero{border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--line)}
+  .dmedia .hero img{width:100%; height:auto}
+  .shots{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+  .shots a{border-radius:10px; overflow:hidden; border:1px solid var(--line); background:#000}
+  .shots img{width:100%; height:100%; object-fit:cover; aspect-ratio:16/10}
+  .dinfo{display:flex; flex-direction:column; gap:18px; min-width:0}
+  .dl{display:grid; grid-template-columns:110px 1fr; gap:8px 14px; font-size:14px; margin:0}
+  .dl dt{color:var(--muted)}
+  .dl dd{margin:0}
+  .desc h3,.dinfo h3{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 8px; font-weight:600}
+  .desc p{white-space:pre-line; margin:0 0 10px; font-size:14.5px; line-height:1.65; color:#d3d9e4}
+  .src{font-size:13px; color:var(--muted)}
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="top">
+      <h1>Exercise Library <span id="count"></span></h1>
+    </div>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search name, muscle, equipment…  (press /)" autocomplete="off">
+      <select id="muscle" aria-label="Target muscle"></select>
+      <select id="difficulty" aria-label="Difficulty"></select>
+      <select id="equipment" aria-label="Equipment"></select>
+      <select id="sort" aria-label="Sort">
+        <option value="popularity">Popularity</option>
+        <option value="name">Name A–Z</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="drop" class="drop">
+    <h2>Drop <code>data/excercises.json</code> here</h2>
+    <p>Keep the <code>media/</code> folder next to this page so the images load.</p>
+    <p class="pick">or click to pick the file</p>
+  </div>
+  <div id="grid" class="grid" hidden></div>
+  <p id="empty" class="empty" hidden>Nothing matches those filters.</p>
+</main>
+
+<input id="file" type="file" accept=".json,application/json">
+
+<dialog id="detail">
+  <div class="dhead">
+    <h2 id="dtitle"></h2>
+    <button class="close" id="dclose" aria-label="Close">✕</button>
+  </div>
+  <div class="dbody">
+    <div class="dmedia" id="dmedia"></div>
+    <div class="dinfo" id="dinfo"></div>
+  </div>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const grid = $('#grid');
+let all = [], list = [];
+
+const pretty = s => String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function thumb(e) {
+  const src = e.gif ? e.gif.path : (e.images[0] && e.images[0].path);
+  return src ? `<img src="${esc(src)}" alt="${esc(e.name)}" loading="lazy" decoding="async">` : '';
+}
+
+function card(e) {
+  const main = e.muscles.main[0] || e.body_parts[0] || '';
+  const eq = e.equipment.filter(x => x !== 'none').map(pretty).join(', ');
+  return `<a class="card" href="#${e.id}">
+    <div class="thumb">${thumb(e)}</div>
+    <div class="body">
+      <h2>${esc(e.name)}</h2>
+      <div class="meta"><b>${esc(main)}</b><span>·</span><span>${esc(pretty(e.difficulty))}</span>${eq ? `<span>·</span><span>${esc(eq)}</span>` : ''}</div>
+    </div>
+  </a>`;
+}
+
+function fill(sel, label, values) {
+  sel.innerHTML = `<option value="">${label}</option>` +
+    values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+}
+
+function init(data) {
+  all = data;
+  document.body.classList.add('ready');
+  $('#drop').hidden = true;
+  grid.hidden = false;
+  const uniq = key => [...new Set(key)].sort((a, b) => a.localeCompare(b));
+  fill($('#muscle'), 'All muscles', uniq(all.flatMap(e => e.muscles.main)).filter(Boolean));
+  fill($('#difficulty'), 'All levels', uniq(all.map(e => pretty(e.difficulty))));
+  fill($('#equipment'), 'All equipment', uniq(all.flatMap(e => e.equipment)).filter(v => v !== 'none').map(pretty));
+  render();
+  route();
+}
+
+function render() {
+  const q = $('#search').value.trim().toLowerCase();
+  const m = $('#muscle').value, d = $('#difficulty').value, eq = $('#equipment').value;
+  const matches = e =>
+    (!m || e.muscles.main.includes(m)) &&
+    (!d || pretty(e.difficulty) === d) &&
+    (!eq || e.equipment.map(pretty).includes(eq)) &&
+    (!q || [e.name, ...e.muscles.main, ...e.muscles.secondary, ...e.equipment.map(pretty), ...e.body_parts]
+      .join(' ').toLowerCase().includes(q));
+
+  list = all.filter(matches);
+  list.sort($('#sort').value === 'name'
+    ? (a, b) => a.name.localeCompare(b.name)
+    : (a, b) => Number(b.popularity) - Number(a.popularity));
+
+  grid.innerHTML = list.map(card).join('');
+  $('#empty').hidden = list.length > 0;
+  $('#count').textContent = `${list.length} of ${all.length} exercises`;
+}
+
+function open(id) {
+  const e = all.find(x => x.id === id);
+  if (!e) return;
+  $('#dtitle').textContent = e.name;
+
+  const gif = e.gif ? `<div class="hero"><img src="${esc(e.gif.path)}" alt="${esc(e.name)} animation"></div>` : '';
+  const shots = e.images.length
+    ? `<div class="shots">${e.images.map((im, i) =>
+        `<a href="${esc(im.path)}" target="_blank" rel="noopener"><img src="${esc(im.path)}" alt="${esc(e.name)} view ${i + 1}" loading="lazy"></a>`).join('')}</div>`
+    : '';
+  $('#dmedia').innerHTML = gif + shots;
+
+  const main = e.muscles.main.map(x => `<span class="chip main">${esc(x)}</span>`).join('');
+  const sec = e.muscles.secondary.map(x => `<span class="chip">${esc(x)}</span>`).join('');
+  const eqp = e.equipment.map(x => `<span class="chip">${esc(pretty(x))}</span>`).join('');
+  const desc = e.description.trim().split(/\r?\n\s*\r?\n/)
+    .map(p => `<p>${esc(p.trim())}</p>`).join('');
+
+  $('#dinfo').innerHTML = `
+    <div class="chips">
+      <span class="chip diff-${esc(e.difficulty)}">${esc(pretty(e.difficulty))}</span>
+      <span class="chip">${esc(pretty(e.exercise_type))}</span>
+      <span class="chip">${esc(pretty(e.log_type))}</span>
+    </div>
+    <div><h3>Target muscles</h3><div class="chips">${main}${sec}</div></div>
+    <div><h3>Equipment</h3><div class="chips">${eqp}</div></div>
+    <dl class="dl">
+      <dt>Body parts</dt><dd>${esc(e.body_parts.filter(x => x !== 'none').map(pretty).join(', ') || '—')}</dd>
+      <dt>Popularity</dt><dd>${Number(e.popularity).toLocaleString()}</dd>
+      <dt>ID</dt><dd>${e.id}</dd>
+    </dl>
+    <div class="desc"><h3>Instructions</h3>${desc}</div>
+    <p class="src"><a href="${esc(e.url)}" target="_blank" rel="noopener">Source page</a></p>`;
+
+  const dlg = $('#detail');
+  if (!dlg.open) dlg.showModal();
+  dlg.querySelector('.dbody').scrollTop = 0;
+}
+
+function closeDetail() {
+  const dlg = $('#detail');
+  if (dlg.open) dlg.close();
+}
+
+function route() {
+  const id = Number(location.hash.slice(1));
+  if (Number.isInteger(id) && id > 0) open(id);
+  else closeDetail();
+}
+
+async function loadFile(file) {
+  try {
+    init(JSON.parse(await file.text()));
+  } catch {
+    alert('That file is not the exercises JSON.');
+  }
+}
+
+$('#detail').addEventListener('close', () => {
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+});
+$('#dclose').addEventListener('click', closeDetail);
+$('#detail').addEventListener('click', ev => {
+  if (ev.target === $('#detail')) closeDetail();
+});
+
+['#search', '#muscle', '#difficulty', '#equipment', '#sort'].forEach(s =>
+  $(s).addEventListener('input', render));
+
+document.addEventListener('keydown', ev => {
+  if (ev.key === '/' && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+    ev.preventDefault();
+    $('#search').focus();
+  }
+});
+
+window.addEventListener('hashchange', route);
+
+const jsonOf = files => [...files].find(f => /\.json$/i.test(f.name));
+
+$('#drop').addEventListener('click', () => $('#file').click());
+$('#file').addEventListener('change', ev => {
+  const f = jsonOf(ev.target.files);
+  ev.target.value = '';
+  if (f) loadFile(f);
+});
+
+window.addEventListener('dragover', ev => { ev.preventDefault(); $('#drop').classList.add('hot'); });
+window.addEventListener('dragleave', ev => { if (ev.relatedTarget === null) $('#drop').classList.remove('hot'); });
+window.addEventListener('drop', ev => {
+  ev.preventDefault();
+  $('#drop').classList.remove('hot');
+  const f = jsonOf(ev.dataTransfer.files);
+  if (f) loadFile(f);
+});
+</script>
+</body>
+</html>
